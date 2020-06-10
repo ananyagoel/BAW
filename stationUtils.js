@@ -1,3 +1,5 @@
+'use strict';
+
 async function getIds(stations, stationName) {
     let filteredStations = await stations.map((station) => {
         if (station.city.city === stationName) {
