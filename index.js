@@ -3,6 +3,8 @@
 const BAW = require('./tasks');
 
 const chalk = require("chalk");
+const dotenv = require('dotenv');
+dotenv.config();
 const log = console.log;
 
 async function test() {
@@ -12,7 +14,7 @@ async function test() {
         /*
         BAW class object is created. It sets the clientID and clientSecret in the constructor
          */
-        const baw = new BAW("r9VlPfHk0MEx7Mfw+izyei+E0ZUhfkghqGgv2Zeb+H4=", "ef7ac57cc66a42b5efd695e058d1fdd1AidDbU82jomHcISlVSOwBSAxQvG7KKwuEcWREBBISh0=");
+        const baw = new BAW(process.env.client_id, process.env.client_secret);
         let token = await baw.token;
 
         /*
@@ -63,8 +65,9 @@ async function test() {
             /*
             Performs pay booking action to complete booking
              */
-            log(chalk.green.bold.underline("Booking response:"));
-            // log(chalk.blue(await baw.payForBooking));
+            log(chalk.green.bold.underline("Booking reference id:"));
+            const bookingData = await baw.payForBooking();
+            log(chalk.blue(bookingData));
 
             /*
             Prints the credit status after paying

@@ -3,6 +3,7 @@
 const request = require("./requestHandler");
 const stationUtils = require("./stationUtils");
 const tripUtils = require("./tripUtils");
+const transferUtils = require("./transfersUtils");
 const URL = "https://stage.bookaway.com/api/";
 
 class BAW {
@@ -26,7 +27,7 @@ class BAW {
     }
 
     set expiry(value) {
-        this.expiryepoch = (new Date).getTime() + parseInt(value)
+        this.expiryepoch = (new Date).getTime() + parseInt(value)*1000 //seconds to milliseconds
     }
 
     get tripData() {
@@ -100,7 +101,7 @@ class BAW {
 
     async getStations() {
         const {data} = await request.get(`${URL}b2b/v1/stations`, {
-            headers: {Authorization: `Bearer ${this.accessToken}`}
+            headers: {Authorization: `Bearer ${await this.token}`}
         });
         this.stationsData = data
     }
@@ -120,7 +121,7 @@ class BAW {
                 arrivalStation: arrivalStationIds.toString(),
                 departureStation: departureIds.toString()
             },
-            headers: {Authorization: `Bearer ${this.accessToken}`}
+            headers: {Authorization: `Bearer ${await this.token}`}
         })
         this.tripData = data.data
         return data
@@ -128,31 +129,31 @@ class BAW {
 
     async getCredit() {
         const {data} = await request.get(`${URL}b2b/v1/credits`, {
-            headers: {Authorization: `Bearer ${this.accessToken}`}
+            headers: {Authorization: `Bearer ${await this.token}`}
         })
         this.creditData = data.balance
         return this.credits
+    }
+
+    async getExtraInfo(){
+        const {data} = await request.get(`${URL}b2b/v1/transfers`,{
+            headers: {Authorization: `Bearer ${await this.token}`}
+        })
+        return await transferUtils.extraInfo(data,this.cheapest.transferId)
     }
 
     async bookCheapestTrip(firstName, lastName, email, phone) {
         const cheapestTrip = await tripUtils.getCheapest(this.trips);
         if (cheapestTrip) {
             this.cheapestData = cheapestTrip;
+            const extraInfo = await this.getExtraInfo();
             const {data} = await request.post(`${URL}b2b/v1/bookings`, {
                 tripId: cheapestTrip.id,
                 passengers: [
                     {
                         firstName: firstName,
                         lastName: lastName,
-                        extraInfos: [
-                            {
-                                definition: "5c1b627a50df8883b358e984",
-                                value: "Female"
-                            }, {
-                                definition: "58acdc6eb626ad00060bcea3",
-                                value: "Indian"
-                            }
-                        ]
+                        extraInfos: extraInfo
                     },
                 ],
                 contact: {
@@ -161,7 +162,7 @@ class BAW {
                 },
                 extraOptions: []
             }, {
-                headers: {Authorization: `Bearer ${this.accessToken}`}
+                headers: {Authorization: `Bearer ${await this.token}`}
             });
             this.bookingData = data;
             return data.reference
@@ -172,15 +173,15 @@ class BAW {
 
     async payForBooking() {
         const {data} = await request.post(`${URL}b2b/v1/bookings/${this.booking.id}/pay`, {}, {
-            headers: {Authorization: `Bearer ${this.accessToken}`}
+            headers: {Authorization: `Bearer ${await this.token}`}
         });
         await this.getCredit()
-        return data
+        return data.reference;
     }
 
     async getBookingStatus() {
         const {data} = await request.get(`${URL}b2b/v1/bookings/${this.booking.id}`, {
-            headers: {Authorization: `Bearer ${this.accessToken}`}
+            headers: {Authorization: `Bearer ${await this.token}`}
         })
         this.bookingConfirmedData = data.status
         return this.bookingConfirmedData

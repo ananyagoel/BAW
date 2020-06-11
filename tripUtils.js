@@ -14,7 +14,7 @@ async function getCheapest(trips) {
         if (cheapest.isAvailable && cheapest.isInstantConfirmation) {
             return cheapest
         } else {
-            return null;
+            return cheapest;
         }
     }
 
